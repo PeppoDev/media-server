@@ -1,0 +1,151 @@
+
+services:
+  # TODO: search for a alternative for this workaround
+  # necessary because docker create all named volumes as root and I dont fuck want a container running as root
+  change-vol-ownership:
+    image: ubuntu
+    container_name: workaround-change-ownership
+    user: "root"
+    env_file:
+      - ./.env
+    group_add:
+      - '${PGID}'
+    volumes:
+      # The volume to chown
+      - ${BASE_PATH}:/tmp/change_ownership
+    command: chown -R ${PUID}:${PGID} /tmp/change-ownership
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_HTML=${LOG_HTML:-false}
+      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
+      - TZ=${TIMEZONE}
+    ports:
+      - 8191:8191
+    networks:
+      - media_server
+    restart: unless-stopped
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TIMEZONE}
+      - UMASK=${UMASK}
+    networks:
+      - media_server
+    restart: unless-stopped
+    ports:
+      - 9696:9696  
+    volumes:    
+      - ${CONFIG_PATH}/prowlarr:/config
+      - ./custom:/config/Definitions/Custom
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    networks:
+      - media_server
+    env_file:
+      - ./.env
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TIMEZONE}
+      - UMASK=${UMASK}
+    restart: unless-stopped
+    ports:
+      - 8989:8989  
+    volumes:
+        - ${CONFIG_PATH}/sonarr:/config
+        - ${SERIES_PATH}:/series
+        - ${DOWNLOADS_PATH}:/downloads
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    networks:
+      - media_server
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TIMEZONE}
+      - UMASK=${UMASK}
+    volumes:
+        - ${CONFIG_PATH}/radarr:/config
+        - ${MOVIES_PATH}:/movies
+        - ${DOWNLOADS_PATH}:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+  torrent-client:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: torrent-client
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - UMASK=${UMASK}
+      - TZ=${TIMEZONE}
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+    networks:
+      - media_server
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    volumes:
+      - ${CONFIG_PATH}/qbittorrent:/config
+      - ${DOWNLOADS_PATH}:/downloads
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TIMEZONE}
+    volumes:
+      - ${CONFIG_PATH}/bazarr:/config
+      - ${SERIES_PATH}:/series
+      - ${MOVIES_PATH}:/movies
+    ports:
+      - 6767:6767
+    networks:
+      - media_server
+    restart: unless-stopped
+  
+  # just to test the integration
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TIMEZONE}
+    volumes:
+      - ${CONFIG_PATH}/overseer:/config
+    ports:
+      - 5055:5055
+    restart: unless-stopped
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TIMEZONE}
+      - UMASK=${UMASK}
+      - VERSION=docker
+      - PLEX_CLAIM=${PLEX_CLAIM_TOKEN}
+    ports:
+      - 32400:32400  
+    volumes:
+      - ${CONFIG_PATH}/plex:/config
+      - ${SERIES_PATH}:/tvshows
+      - ${MOVIES_PATH}:/movies
+
+networks:
+  media_server:    
+
