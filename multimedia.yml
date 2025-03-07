@@ -115,37 +115,6 @@ services:
     networks:
       - media_server
     restart: unless-stopped
-  
-  # just to test the integration
-  overseerr:
-    image: lscr.io/linuxserver/overseerr:latest
-    container_name: overseerr
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TIMEZONE}
-    volumes:
-      - ${CONFIG_PATH}/overseer:/config
-    ports:
-      - 5055:5055
-    restart: unless-stopped
-  plex:
-    image: lscr.io/linuxserver/plex:latest
-    container_name: plex
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TIMEZONE}
-      - UMASK=${UMASK}
-      - VERSION=docker
-      - PLEX_CLAIM=${PLEX_CLAIM_TOKEN}
-    ports:
-      - 32400:32400  
-    volumes:
-      - ${CONFIG_PATH}/plex:/config
-      - ${SERIES_PATH}:/tvshows
-      - ${MOVIES_PATH}:/movies
-
 networks:
   media_server:    
 
